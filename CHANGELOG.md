@@ -9,6 +9,11 @@ Notable changes to this template (condensed — not every commit). Newest first.
 - `qtquick3d` added to vcpkg.json (no assimp; qtbase unchanged, so the cached Qt is reused).
 - Tests: `tst_model_viewer.qml` (zoom limits, reset, auto-rotate), a tab-switch case in
   `tst_main_window.qml`, and a Spix E2E for the 3D tab.
+- Fixed: non-Qt DLLs needed by windeployqt-deployed Qt plugins were never copied (Quick 3D failed
+  with "Cannot load library qquick3dplugind.dll" for lack of `meshoptimizer.dll`; the JPEG plugin
+  silently lacked `jpeg62.dll`). `cmake/copy_runtime_deps.cmake` now fills them in from vcpkg, for
+  both `bin/<preset>/` and `cmake --install` / the zip.
+- README: Mermaid diagrams (architecture, click flow, build/test/ship) and screenshots in `docs/`.
 
 ## 2026-10-12 — Cleanup for QML development
 - Removed: Conan (`conanfile.py`, `config_conan.cmake`, profiles), `.devcontainer/`, `.run/` (CLion),

@@ -3,15 +3,15 @@
 #   deploy_qt_runtime(<target>)                      — dev time: next to the exe in bin/<preset>/
 #   install_qt_runtime(<target> DESTINATION <dir>)   — install time: `cmake --install` / cpack
 #
-# Both run windeployqt (Qt DLLs, platform plugin, QML imports such as QtQuick.Controls) and drop a
-# qt.conf next to the exe. Without qt.conf, vcpkg's Qt derives its plugin/QML paths from the vcpkg
-# tree layout, not the layout windeployqt creates, so QtQuick.Controls fails with
-# "plugin qtquickcontrols2plugin not found".
+# Both run windeployqt (Qt DLLs, platform plugin, QML imports such as QtQuick.Controls), copy the
+# non-Qt vcpkg DLLs those Qt pieces need (cmake/copy_runtime_deps.cmake), and drop a qt.conf next to
+# the exe. Without qt.conf, vcpkg's Qt derives its plugin/QML paths from the vcpkg tree layout, not
+# the layout windeployqt creates, so QtQuick.Controls fails with "plugin qtquickcontrols2plugin not found".
 #
 # Call both AFTER the target is created (install_qt_runtime after its install(TARGETS)).
 
-# Sets _windeployqt (a $<CONFIG>-aware genex) and _qt_conf in the caller's scope; returns FALSE if
-# windeployqt is missing.
+# Sets _windeployqt (a $<CONFIG>-aware genex), _qt_conf and _deps_cmd (the runtime-deps step, or
+# empty without vcpkg/dumpbin) in the caller's scope; returns FALSE if windeployqt is missing.
 function(_qt_deploy_setup out_ok)
   set(${out_ok} FALSE PARENT_SCOPE)
   if(NOT WIN32)
@@ -30,6 +30,17 @@ function(_qt_deploy_setup out_ok)
   set(_conf "${CMAKE_BINARY_DIR}/qt.conf")
   file(WRITE "${_conf}" "[Paths]\nPrefix = .\nPlugins = .\nQmlImports = qml\n")
   set(_qt_conf "${_conf}" PARENT_SCOPE)
+
+  # Non-Qt DLLs needed by windeployqt's output (e.g. meshoptimizer for Quick 3D) come from vcpkg's
+  # bin folder for the active config. dumpbin is on PATH in a VS developer environment.
+  find_program(DUMPBIN_EXE dumpbin)
+  if(DUMPBIN_EXE AND VCPKG_INSTALLED_DIR AND VCPKG_TARGET_TRIPLET)
+    set(_deps_dir "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}$<$<CONFIG:Debug>:/debug>/bin" PARENT_SCOPE)
+    set(_deps_script "${PROJECT_SOURCE_DIR}/cmake/copy_runtime_deps.cmake" PARENT_SCOPE)
+  else()
+    set(_deps_dir "" PARENT_SCOPE)
+    message(STATUS "[qt] dumpbin or vcpkg not found — non-Qt runtime DLLs of Qt plugins won't be copied")
+  endif()
   set(${out_ok} TRUE PARENT_SCOPE)
 endfunction()
 
@@ -40,10 +51,16 @@ function(deploy_qt_runtime target)
   if(NOT _ok)
     return()
   endif()
+  set(_deps_step "")
+  if(_deps_dir)
+    set(_deps_step COMMAND ${CMAKE_COMMAND} "-DDIR=$<TARGET_FILE_DIR:${target}>" "-DDEP_DIR=${_deps_dir}"
+                   "-DDUMPBIN=${DUMPBIN_EXE}" -P "${_deps_script}")
+  endif()
   add_custom_command(
     TARGET ${target}
     POST_BUILD
     COMMAND "${_windeployqt}" ${_WINDEPLOYQT_ARGS} "$<TARGET_FILE:${target}>"
+    ${_deps_step}
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_qt_conf}" "$<TARGET_FILE_DIR:${target}>/qt.conf"
     COMMENT "windeployqt: deploying Qt runtime next to ${target}"
     VERBATIM)
@@ -74,4 +91,14 @@ function(install_qt_runtime target)
       message(FATAL_ERROR \"windeployqt failed (\${_rc})\")
     endif()
     file(COPY \"${_qt_conf}\" DESTINATION \"\${CMAKE_INSTALL_PREFIX}/${arg_DESTINATION}\")")
+
+  if(_deps_dir)
+    install(
+      CODE "
+      set(DIR \"\${CMAKE_INSTALL_PREFIX}/${arg_DESTINATION}\")
+      set(DEP_DIR \"${_deps_dir}\")
+      set(DUMPBIN \"${DUMPBIN_EXE}\")
+      include(\"${_deps_script}\")
+      file(REMOVE \"\${DIR}/.runtime_deps.stamp\")")
+  endif()
 endfunction()

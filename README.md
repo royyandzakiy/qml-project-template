@@ -2,6 +2,12 @@
 
 Starter for Qt 6 / QML desktop apps in C++23, built with CMake presets and vcpkg. I use it as the base for new QML tools: copy it, rename `project()`, and start adding screens.
 
+| Counter tab (C++ viewmodel) | 3D Viewer tab (Qt Quick 3D) |
+|---|---|
+| ![Counter tab](docs/screenshot-counter.png) | ![3D viewer tab](docs/screenshot-3d.png) |
+
+Screenshots taken with Spix (`takeScreenshot`) driving the `clang-cl-e2e` build.
+
 ## What it does
 
 - **Qt-free core, QML on top** - app logic in `src/core/` (plain C++, builds and tests without Qt), `QML_ELEMENT` viewmodels in `src/viewmodels/`, UI in `qml/` as a static `App` QML module
