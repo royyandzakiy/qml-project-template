@@ -1,10 +1,10 @@
 {
   // Three debug configs, all preset-agnostic via ${command:cmake.launchTargetPath}
-  // (they follow the active CMake Tools target — pick app/unit_tests in the status bar).
+  // (they follow the active CMake Tools target — pick the app or a test target in the status bar).
   // Pick the matching one from the F5 dropdown for your toolchain:
   //   - LLDB     : default, cross-platform (Clang / Apple Clang / clang-cl / GCC)
   //   - cppvsdbg : native Microsoft debugger for MSVC (Windows) — needs ms-vscode.cpptools
-  //   - GDB      : cppdbg for MinGW & gcc-linux                  — needs ms-vscode.cpptools
+  //   - GDB      : cppdbg for GCC on Linux                        — needs ms-vscode.cpptools
   // cpptools (when installed) is used ONLY as a debugger; its IntelliSense/formatting are
   // disabled in settings.json so it never competes with clangd.
   "version": "0.2.0",
@@ -34,7 +34,7 @@
     {
       "type": "cppdbg",
       "request": "launch",
-      "name": "Debug (GDB · MinGW & GCC)",
+      "name": "Debug (GDB · GCC Linux)",
       "program": "${command:cmake.launchTargetPath}",
       "args": [],
       "cwd": "${workspaceFolder}",

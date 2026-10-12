@@ -9,22 +9,21 @@
 # Style/checks themselves live in .clang-format / .clang-tidy — these targets
 # only drive the tools.
 
-# Project-owned sources. CONFIGURE_DEPENDS re-globs when files are added.
+# Project-owned C++ sources (QML files are handled by cmake/qml_tools.cmake).
+# CONFIGURE_DEPENDS re-globs when files are added.
 file(
   GLOB_RECURSE FORMAT_SOURCES
   CONFIGURE_DEPENDS
   "${CMAKE_SOURCE_DIR}/src/*.cpp"
   "${CMAKE_SOURCE_DIR}/src/*.hpp"
   "${CMAKE_SOURCE_DIR}/src/*.h"
-  "${CMAKE_SOURCE_DIR}/include/*.hpp"
-  "${CMAKE_SOURCE_DIR}/include/*.h")
+  "${CMAKE_SOURCE_DIR}/test/*.cpp"
+  "${CMAKE_SOURCE_DIR}/test/*.hpp")
 
-# Never touch generated headers (e.g. include/${PROJECT_NAME}/version.h).
-list(FILTER FORMAT_SOURCES EXCLUDE REGEX "/version\\.h$")
-
-# clang-tidy analyzes translation units; restrict it to .cpp files.
+# clang-tidy analyzes production translation units only (test code breaks many rules on purpose).
 set(TIDY_SOURCES ${FORMAT_SOURCES})
 list(FILTER TIDY_SOURCES INCLUDE REGEX "\\.cpp$")
+list(FILTER TIDY_SOURCES EXCLUDE REGEX "/test/")
 
 # ----- clang-format targets -----
 find_program(CLANG_FORMAT_EXE NAMES clang-format)

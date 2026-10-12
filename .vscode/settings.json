@@ -44,5 +44,11 @@
   // ---- File associations ----
   "files.associations": {
     "*.h.in": "cpp"
+  },
+
+  // ---- QML (Qt extension): qmlls finds the App module via the .qmlls.ini CMake generates ----
+  "[qml]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
   }
 }

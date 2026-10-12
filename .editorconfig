@@ -16,6 +16,11 @@ indent_style = tab
 indent_size = 4
 max_line_length = 120
 
+# QML — 4 spaces (mirrors .qmlformat.ini, which qmlformat and Qt Creator read).
+[*.qml]
+indent_style = space
+indent_size = 4
+
 # CMake — 2-space (mirrors .cmake-format.yaml).
 [{CMakeLists.txt,*.cmake}]
 indent_style = space

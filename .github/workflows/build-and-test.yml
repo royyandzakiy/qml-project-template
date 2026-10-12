@@ -1,6 +1,6 @@
 # .github/workflows/build-and-test.yml
-# Windows clang-cl only for now: Qt comes from vcpkg, and building it on Linux/macOS runners needs
-# extra system packages (X11/xkb/GL dev headers) that scripts/setup-ubuntu.sh doesn't install yet.
+# Windows clang-cl only for now. A Linux job would run scripts/setup-ubuntu.sh (installs the Qt build
+# deps) and the test-clang-linux-* presets (headless via QT_QPA_PLATFORM=offscreen) — see DEVELOPMENT.md.
 # Tests per preset: GTest (core), QtTest (viewmodels), Qt Quick Test (QML), + Spix E2E on clang-cl-e2e.
 name: CI
 

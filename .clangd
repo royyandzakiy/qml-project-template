@@ -25,7 +25,9 @@ Index:
 
 Diagnostics:
   UnusedIncludes: Strict     # IncludeCleaner: flag headers you don't use
-  MissingIncludes: Strict    # flag symbols used via transitive includes
+  # Off for Qt: Q_OBJECT, signals, emit, QML_ELEMENT live in internal headers (qtmetamacros.h, ...)
+  # that Qt code reaches through <QObject> etc. by design, so Strict flags every Qt class.
+  MissingIncludes: None
   ClangTidy:
     FastCheckFilter: Loose   # run more tidy checks in-editor (config in .clang-tidy)
 

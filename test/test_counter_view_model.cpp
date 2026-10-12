@@ -7,7 +7,7 @@
 class TestCounterViewModel : public QObject {
 	Q_OBJECT
 
-private slots:
+  private slots:
 	void incrementNotifiesQml() {
 		CounterViewModel vm;
 		const QSignalSpy spy(&vm, &CounterViewModel::countChanged);

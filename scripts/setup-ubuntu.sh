@@ -1,24 +1,26 @@
 #!/usr/bin/env bash
-# scripts/setup-ubuntu.sh — provision the C++ toolchain in an Ubuntu / WSL2 distro.
+# scripts/setup-ubuntu.sh — provision the C++/Qt toolchain in an Ubuntu / WSL2 distro.
 #
-# Idempotent: safe to re-run. This is the SINGLE source of truth for the Linux toolchain —
-# the devcontainer Dockerfile AND the CI workflow run this same script. Clang is PINNED to a
+# Idempotent: safe to re-run. This is the SINGLE source of truth for the Linux toolchain (a
+# future Linux CI job should run this same script). Clang is PINNED to a
 # specific version from apt.llvm.org (not the distro default, which on Ubuntu 24.04 is only
 # clang-18), so WSL / container / CI all get the same compiler VERSION — not merely the same
 # package names. That version match is what actually stops drift.
 #
-#   bash scripts/setup-ubuntu.sh              # toolchain + clang + conan (PKG_MANAGER default)
-#   bash scripts/setup-ubuntu.sh --with-vcpkg # also clone + bootstrap vcpkg into ~/vcpkg
+#   bash scripts/setup-ubuntu.sh              # toolchain + clang + Qt build deps + vcpkg (~/vcpkg)
+#
+# vcpkg builds Qt from source on first configure (~1h); the X11/xkb/GL dev packages below are what
+# qtbase/qtdeclarative need for that. GUI tests run headless via the Linux test presets
+# (QT_QPA_PLATFORM=offscreen).
 #
 # Override the pinned Clang with CLANG_VERSION=NN (must exist on apt.llvm.org for this distro).
 set -euo pipefail
 
 CLANG_VERSION="${CLANG_VERSION:-21}"
 
-WITH_VCPKG=0
 for arg in "$@"; do
   case "$arg" in
-    --with-vcpkg) WITH_VCPKG=1 ;;
+    --with-vcpkg) ;; # accepted for compatibility; vcpkg is always installed now
     *) echo "unknown arg: $arg" >&2; exit 2 ;;
   esac
 done
@@ -33,6 +35,9 @@ $SUDO apt-get install -y --no-install-recommends \
   build-essential cmake ninja-build ccache mold pkg-config gdb \
   git curl zip unzip tar ca-certificates gnupg lsb-release \
   python3 python3-pip pipx
+
+echo "==> apt: build deps for Qt from vcpkg (qtbase/qtdeclarative) + Qt runtime libs"
+$SUDO apt-get install -y --no-install-recommends   autoconf autoconf-archive automake libtool bison flex python3-venv   '^libxcb.*-dev' libx11-xcb-dev libxrender-dev libxi-dev libxext-dev libxkbcommon-dev   libxkbcommon-x11-dev libgl1-mesa-dev libglu1-mesa-dev libegl1-mesa-dev libfontconfig1-dev   libfreetype-dev
 
 echo "==> Clang ${CLANG_VERSION} (pinned, from apt.llvm.org)"
 # The distro's unversioned clang lags (Ubuntu 24.04 ships clang-18); pin a specific version so
@@ -69,44 +74,29 @@ if ! $SUDO apt-get install -y g++-16 gcc-16 2>/dev/null; then
   echo "    g++-16 not in this distro's repos — skipping (default gcc/clang remain)."
 fi
 
-echo "==> conan 2 (the project's default package manager)"
-if ! command -v conan >/dev/null 2>&1; then
-  if [ "$(id -u)" -eq 0 ]; then
-    # Container build (root): install system-wide so the runtime user sees it.
-    export PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin
-    pipx install conan
-  else
-    pipx ensurepath || true
-    pipx install conan
-    export PATH="$HOME/.local/bin:$PATH"
-  fi
+echo "==> vcpkg (~/vcpkg)"
+if [ ! -d "$HOME/vcpkg" ]; then
+  git clone https://github.com/microsoft/vcpkg.git "$HOME/vcpkg"
+  "$HOME/vcpkg/bootstrap-vcpkg.sh" -disableMetrics
 fi
-conan profile detect >/dev/null 2>&1 || true   # creates the default profile on first run
-
-if [ "$WITH_VCPKG" -eq 1 ]; then
-  echo "==> vcpkg (optional)"
-  if [ ! -d "$HOME/vcpkg" ]; then
-    git clone https://github.com/microsoft/vcpkg.git "$HOME/vcpkg"
-    "$HOME/vcpkg/bootstrap-vcpkg.sh" -disableMetrics
-  fi
-  # For GitHub Actions: expose VCPKG_ROOT to subsequent steps
-  if [ -n "${GITHUB_ENV:-}" ]; then
-    echo "VCPKG_ROOT=$HOME/vcpkg" >> "$GITHUB_ENV"
-    echo "$HOME/vcpkg" >> "$GITHUB_PATH"
-  fi
-  if ! grep -q 'VCPKG_ROOT=' "$HOME/.bashrc" 2>/dev/null; then
-    {
-      echo 'export VCPKG_ROOT="$HOME/vcpkg"'
-      echo 'export PATH="$VCPKG_ROOT:$PATH"'
-    } >> "$HOME/.bashrc"
-  fi
+# For GitHub Actions: expose VCPKG_ROOT to subsequent steps
+if [ -n "${GITHUB_ENV:-}" ]; then
+  echo "VCPKG_ROOT=$HOME/vcpkg" >> "$GITHUB_ENV"
+  echo "$HOME/vcpkg" >> "$GITHUB_PATH"
+fi
+if ! grep -q 'VCPKG_ROOT=' "$HOME/.bashrc" 2>/dev/null; then
+  {
+    echo 'export VCPKG_ROOT="$HOME/vcpkg"'
+    echo 'export PATH="$VCPKG_ROOT:$PATH"'
+  } >> "$HOME/.bashrc"
 fi
 
 echo ""
 echo "Done."
 echo "  clang : $(clang --version | head -1)"
 echo "  cmake : $(cmake --version | head -1)"
-echo "  conan : $(conan --version 2>/dev/null || echo 'open a new shell to pick up PATH')"
+echo "  vcpkg : $HOME/vcpkg (open a new shell to pick up VCPKG_ROOT)"
 echo ""
-echo "In VS Code: 'Reopen in WSL', then:"
-echo "  cmake --preset clang-linux-debug && cmake --build --preset clang-linux-debug"
+echo "Then (first configure builds Qt in vcpkg, ~1h):"
+echo "  cmake --preset clang-linux-debug -D BUILD_TESTING=ON && cmake --build --preset clang-linux-debug"
+echo "  ctest --preset test-clang-linux-debug"

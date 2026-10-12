@@ -1,7 +1,18 @@
 # Changelog
 
-Notable changes to this template, grouped chronologically by commit history (condensed — not every
-commit). Newest first.
+Notable changes to this template (condensed — not every commit). Newest first.
+
+## 2026-10-12 — Cleanup for QML development
+- Removed: Conan (`conanfile.py`, `config_conan.cmake`, profiles), `.devcontainer/`, `.run/` (CLion),
+  `examples/`, Perfetto, ClangBuildAnalyzer, MSan, MinGW and `clang-cl-asan` presets, CI badge
+  scripts, the version header, `VCPKG_MANIFEST_MODE`; `.codebase-memory/` untracked (local only).
+- `PKG_MANAGER` is now `vcpkg | none` (`none` = bring your own Qt from an installer/SDK).
+- Fixed: coverage flags now reach `app_core` (were applied after the targets); coverage is skipped
+  with a warning on MSVC/clang-cl instead of breaking the link.
+- Linux/macOS test presets run headless (`QT_QPA_PLATFORM=offscreen`); `setup-ubuntu.sh` installs
+  vcpkg + Qt build deps instead of Conan.
+- Added `.qmlformat.ini` + `[*.qml]` in `.editorconfig`, Qt VS Code extensions, QML/Qt Creator
+  notes in `EDITOR_SETUP.md`; C++ formatting now also covers `test/`.
 
 ## 2026-10-12 — Qt/QML starter (forked from cpp-project-template)
 - Single Qt 6.8 / QML app from vcpkg (clang-cl, `x64-windows`); `MyApp`, `MyLib` and the
@@ -17,47 +28,6 @@ commit). Newest first.
 - Spix E2E (`ENABLE_SPIX`, `clang-cl-e2e` preset): Python drives the real app over XML-RPC
   (`test/e2e/`). AnyRPC via vcpkg feature, Spix v0.14 via FetchContent. Test builds only.
 
-## 2026-06-26 → 06-27 — App/library split & subproject support
-- Split into two targets: `MyApp` (standalone app) and `MyLib` (shared-by-default / static via
-  `BUILD_LIB_SHARED`), each toggleable with `BUILD_APP` / `BUILD_LIB`.
-- `MyLib` ships an installable CMake package: `generate_export_header` (`MYLIB_EXPORT`),
-  `MyLibConfig.cmake` + version file, auto-staged to `generated_lib/<platform>/<config>/`.
-- `PROJECT_IS_TOP_LEVEL` guards + `PROJECT_SOURCE_DIR` paths so the project works via
-  `add_subdirectory()`.
-- Added an `app_tests` target demonstrating dependency injection with a mocked interface (gmock).
-- cmake-conan switched from submodule to FetchContent; per-config-correct multi-config dependency
-  handling; per-OS/compiler CI badges.
-- Fixed: package-manager setup ordering before `project()` (a mis-order resolved the wrong vcpkg `fmt`
-  and crashed MSVC Debug only).
-
-## 2026-06-25 — Hardening, modularization & coverage
-- Refactored the monolithic `CMakeLists.txt` into focused `cmake/` modules.
-- Added compiler hardening defaults and a `build all` path.
-- Added code coverage (llvm-cov / gcovr), a `coverage` target, CI report + badges, and a `classify`
-  component to showcase partial branch coverage.
-- `version.txt` as single source of truth; completed the remaining presets.
-
-## 2026-06-24 — Package managers, CI & sanitizer tests
-- Unified `PKG_MANAGER` macro (vcpkg | conan | none) with graceful Conan→vcpkg fallback.
-- Added GitHub Actions CI, devcontainers, and `BUILD_TESTING` toggle.
-- Full sanitizer test suite (ASan/TSan/MSan in one file), including Windows ASan for MSVC and clang-cl.
-- Separated output bin folders per compiler.
-
-## 2026-06-23 — Template foundation rework
-- Standard project files, pre-commit hook, editor setup, better debugging support.
-- Added Conan support and PCH; integrated codebase-memory indexing.
-- Removed cppcheck/IWYU; cleaned up clangd false-positive diagnostics.
-
-## 2026-06-10 → 06-22 — Presets, profilers & examples
-- Built out CMakePresets (Windows/Linux/macOS base presets, inheritance, conditionals).
-- vcpkg manifest mode as default; local vcpkg root handling.
-- Added all sanitizer/profiler integrations (Tracy/Perfetto) with examples; brief IWYU experiment.
-- Cleaned up `project_options.cmake` and header separators; fixed project-name macro.
-
-## 2026-05 — Template-ization
-- Made sanitizers optional; reframed the README as a reusable template; moved to clang-18.
-
-## 2026-04 — Initial scaffolding
-- Project init with MinGW preset and CI workflow.
-- vcpkg setup with manifest-mode check; `fmt`; clang-tidy, cppcheck, cmake-format.
-- First compiler sanitizers, ASan flags, and Tracy integration; professional README structure.
+## Before 2026-10-12
+Inherited from [cpp-project-template](https://github.com/royyandzakiy/cpp-project-template) (presets,
+vcpkg/clangd/clang-tidy setup, sanitizers, coverage, profilers, CI) — see its changelog for that history.

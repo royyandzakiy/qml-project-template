@@ -53,22 +53,6 @@
                         }
                 },
                 {
-                        "name": "mingw-base",
-                        "hidden": true,
-                        "inherits": "base",
-                        "generator": "Ninja",
-                        "condition": {
-                                "type": "equals",
-                                "lhs": "${hostSystemName}",
-                                "rhs": "Windows"
-                        },
-                        "cacheVariables": {
-                                "CMAKE_C_COMPILER": "gcc",
-                                "CMAKE_CXX_COMPILER": "g++",
-                                "VCPKG_TARGET_TRIPLET": "x64-mingw-static"
-                        }
-                },
-                {
                         "name": "linux-base",
                         "hidden": true,
                         "inherits": "base",
@@ -170,22 +154,6 @@
                         ]
                 },
                 {
-                        "name": "mingw-debug",
-                        "displayName": "MinGW Debug",
-                        "inherits": [
-                                "mingw-base",
-                                "build-debug"
-                        ]
-                },
-                {
-                        "name": "mingw-release",
-                        "displayName": "MinGW Release",
-                        "inherits": [
-                                "mingw-base",
-                                "build-release"
-                        ]
-                },
-                {
                         "name": "clang-linux-debug",
                         "displayName": "Clang Debug",
                         "inherits": [
@@ -272,18 +240,6 @@
                         }
                 },
                 {
-                        "name": "clang-linux-msan",
-                        "displayName": "Clang Debug + MSan",
-                        "inherits": [
-                                "clang-linux-base",
-                                "build-debug",
-                                "sanitizer-base"
-                        ],
-                        "cacheVariables": {
-                                "ENABLE_MSAN": "ON"
-                        }
-                },
-                {
                         "name": "msvc-asan",
                         "displayName": "MSVC Debug + ASan",
                         "inherits": [
@@ -296,21 +252,8 @@
                         }
                 },
                 {
-                        "name": "clang-cl-asan",
-                        "displayName": "Clang-CL Debug + ASan",
-                        "inherits": [
-                                "clang-cl-base",
-                                "build-debug",
-                                "sanitizer-base"
-                        ],
-                        "cacheVariables": {
-                                "ENABLE_ASAN": "ON",
-                                "CONAN_HOST_PROFILE": "${sourceDir}/cmake/conan-profiles/clang-cl-windows-asan.ini"
-                        }
-                },
-                {
                         "name": "clang-linux-full",
-                        "displayName": "Clang Debug + Everything (ASan/LSan/UBSan, strict, tidy, PCH, unity, examples)",
+                        "displayName": "Clang Debug + Everything (ASan/LSan/UBSan, strict, tidy, PCH, unity)",
                         "inherits": [
                                 "clang-linux-base",
                                 "build-debug",
@@ -321,8 +264,7 @@
                                 "ENABLE_STRICT_COMPILER": "ON",
                                 "ENABLE_CLANG_TIDY": "ON",
                                 "ENABLE_PCH": "ON",
-                                "ENABLE_UNITY_BUILD": "ON",
-                                "BUILD_EXAMPLES": "ON"
+                                "ENABLE_UNITY_BUILD": "ON"
                         }
                 },
                 {
@@ -377,16 +319,6 @@
                         "configurePreset": "clang-cl-release"
                 },
                 {
-                        "name": "mingw-debug",
-                        "inherits": "build-type-debug",
-                        "configurePreset": "mingw-debug"
-                },
-                {
-                        "name": "mingw-release",
-                        "inherits": "build-type-release",
-                        "configurePreset": "mingw-release"
-                },
-                {
                         "name": "clang-linux-debug",
                         "inherits": "build-type-debug",
                         "configurePreset": "clang-linux-debug"
@@ -427,19 +359,9 @@
                         "configurePreset": "clang-linux-tsan"
                 },
                 {
-                        "name": "clang-linux-msan",
-                        "inherits": "build-type-debug",
-                        "configurePreset": "clang-linux-msan"
-                },
-                {
                         "name": "msvc-asan",
                         "inherits": "build-type-debug",
                         "configurePreset": "msvc-asan"
-                },
-                {
-                        "name": "clang-cl-asan",
-                        "inherits": "build-type-debug",
-                        "configurePreset": "clang-cl-asan"
                 },
                 {
                         "name": "clang-linux-full",
@@ -458,6 +380,15 @@
                         "hidden": true,
                         "output": {
                                 "outputOnFailure": true
+                        }
+                },
+                {
+                        "name": "base-test-headless",
+                        "hidden": true,
+                        "inherits": "base-test",
+                        "description": "Linux/macOS: run GUI tests (qml_tests, E2E) without a display",
+                        "environment": {
+                                "QT_QPA_PLATFORM": "offscreen"
                         }
                 },
                 {
@@ -483,59 +414,44 @@
                         "configurePreset": "clang-cl-release"
                 },
                 {
-                        "name": "test-mingw-debug",
-                        "inherits": "base-test",
-                        "configurePreset": "mingw-debug"
-                },
-                {
-                        "name": "test-mingw-release",
-                        "inherits": "base-test",
-                        "configurePreset": "mingw-release"
-                },
-                {
                         "name": "test-clang-linux-debug",
-                        "inherits": "base-test",
+                        "inherits": "base-test-headless",
                         "configurePreset": "clang-linux-debug"
                 },
                 {
                         "name": "test-gcc-linux-debug",
-                        "inherits": "base-test",
+                        "inherits": "base-test-headless",
                         "configurePreset": "gcc-linux-debug"
                 },
                 {
                         "name": "test-clang-linux-release",
-                        "inherits": "base-test",
+                        "inherits": "base-test-headless",
                         "configurePreset": "clang-linux-release"
                 },
                 {
                         "name": "test-gcc-linux-release",
-                        "inherits": "base-test",
+                        "inherits": "base-test-headless",
                         "configurePreset": "gcc-linux-release"
                 },
                 {
                         "name": "test-appleclang-debug",
-                        "inherits": "base-test",
+                        "inherits": "base-test-headless",
                         "configurePreset": "appleclang-debug"
                 },
                 {
                         "name": "test-appleclang-release",
-                        "inherits": "base-test",
+                        "inherits": "base-test-headless",
                         "configurePreset": "appleclang-release"
                 },
                 {
                         "name": "test-clang-linux-asan",
-                        "inherits": "base-test",
+                        "inherits": "base-test-headless",
                         "configurePreset": "clang-linux-asan"
                 },
                 {
                         "name": "test-clang-linux-tsan",
-                        "inherits": "base-test",
+                        "inherits": "base-test-headless",
                         "configurePreset": "clang-linux-tsan"
-                },
-                {
-                        "name": "test-clang-linux-msan",
-                        "inherits": "base-test",
-                        "configurePreset": "clang-linux-msan"
                 },
                 {
                         "name": "test-msvc-asan",
@@ -544,13 +460,8 @@
                         "configuration": "Debug"
                 },
                 {
-                        "name": "test-clang-cl-asan",
-                        "inherits": "base-test",
-                        "configurePreset": "clang-cl-asan"
-                },
-                {
                         "name": "test-clang-linux-full",
-                        "inherits": "base-test",
+                        "inherits": "base-test-headless",
                         "configurePreset": "clang-linux-full"
                 },
                 {

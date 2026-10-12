@@ -1,5 +1,5 @@
 # cmake/sanitizers.cmake
-# Sanitizer configuration: ASan, TSan, MSan, UBSan, and Windows-specific deployment.
+# Sanitizer configuration: ASan, TSan, UBSan, and Windows-specific deployment.
 #
 # Sets compiler/linker flags globally when ENABLE_SANITIZERS is ON.
 # Provides deploy_asan_runtime(<target>) for Windows ASan DLL deployment.
@@ -8,7 +8,7 @@
 if(ENABLE_SANITIZERS)
   message(STATUS "Configuring Sanitizer Baseline")
   if(MSVC)
-    # Windows (MSVC & clang-cl): ASan is the only real sanitizer — no TSan/MSan/LSan.
+    # Windows (MSVC & clang-cl): ASan is the only real sanitizer — no TSan/LSan.
     if(ENABLE_ASAN)
       message(STATUS "Sanitizers: ASan (Windows)")
       # /RTC1 (CMake's default Debug flag) is incompatible with ASan on cl and clang-cl — strip it.
@@ -16,7 +16,7 @@ if(ENABLE_SANITIZERS)
       string(REGEX REPLACE "/RTC[1csu]+" "" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
       add_compile_options(/fsanitize=address) # instrumenting; embeds the ASan lib directives
       add_link_options(/INCREMENTAL:NO)        # ASan is incompatible with incremental linking
-      # Prebuilt deps (fmt, etc. from vcpkg/conan) aren't ASan-instrumented, so the MSVC STL's
+      # Prebuilt deps (fmt, Qt, etc. from vcpkg) aren't ASan-instrumented, so the MSVC STL's
       # container annotations mismatch at link (LNK2038 annotate_string/annotate_vector). Disable
       # them so instrumented and non-instrumented code agree. (Loses container-overflow checks;
       # heap/use-after-free detection is unaffected.)
@@ -49,11 +49,11 @@ if(ENABLE_SANITIZERS)
       message(STATUS "Sanitizers: MSVC /RTC1 runtime checks (set ENABLE_ASAN for AddressSanitizer)")
       add_compile_options(/RTC1)
     endif()
-    if(ENABLE_TSAN OR ENABLE_MSAN)
-      message(WARNING "TSan/MSan are unavailable on Windows (MSVC/clang-cl) — ignoring.")
+    if(ENABLE_TSAN)
+      message(WARNING "TSan is unavailable on Windows (MSVC/clang-cl) — ignoring.")
     endif()
   else()
-    # Baseline: UBSan (composes with one of ASan/TSan/MSan).
+    # Baseline: UBSan (composes with one of ASan/TSan).
     # -fno-sanitize-recover=all makes UBSan findings fatal (non-zero exit) instead of just
     # printing and continuing — important so they actually fail a build/test.
     set(SANITIZER_FLAGS
@@ -64,15 +64,9 @@ if(ENABLE_SANITIZERS)
         -fno-optimize-sibling-calls
         -fstack-protector-strong)
 
-    # ASan / TSan / MSan are mutually exclusive — allow at most one.
-    set(_san_choice 0)
-    foreach(_s ENABLE_ASAN ENABLE_TSAN ENABLE_MSAN)
-      if(${_s})
-        math(EXPR _san_choice "${_san_choice} + 1")
-      endif()
-    endforeach()
-    if(_san_choice GREATER 1)
-      message(FATAL_ERROR "ENABLE_ASAN / ENABLE_TSAN / ENABLE_MSAN are mutually exclusive — enable only one.")
+    # ASan / TSan are mutually exclusive.
+    if(ENABLE_ASAN AND ENABLE_TSAN)
+      message(FATAL_ERROR "ENABLE_ASAN / ENABLE_TSAN are mutually exclusive — enable only one.")
     endif()
 
     if(ENABLE_ASAN)
@@ -81,14 +75,8 @@ if(ENABLE_SANITIZERS)
     elseif(ENABLE_TSAN)
       message(STATUS "Sanitizers: UBSan + TSan")
       list(APPEND SANITIZER_FLAGS -fsanitize=thread)
-    elseif(ENABLE_MSAN)
-      if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        message(FATAL_ERROR "ENABLE_MSAN requires Clang — MemorySanitizer is Clang-only (compiler: ${CMAKE_CXX_COMPILER_ID}).")
-      endif()
-      message(STATUS "Sanitizers: UBSan + MSan (needs an instrumented libc++ to avoid false positives)")
-      list(APPEND SANITIZER_FLAGS -fsanitize=memory -fsanitize-memory-track-origins)
     else()
-      message(STATUS "Sanitizers: UBSan baseline only (set ENABLE_ASAN / ENABLE_TSAN / ENABLE_MSAN for more)")
+      message(STATUS "Sanitizers: UBSan baseline only (set ENABLE_ASAN / ENABLE_TSAN for more)")
     endif()
 
     add_compile_options(${SANITIZER_FLAGS})

@@ -2,54 +2,36 @@
 
 ## Backlog
 
-- revamp readme
-  - create github wiki
+- write README.md (from README.md.template)
+- add license
 
-- add cpack
-- expand tests to have unit, integ, e2e (pytest)
-- add doxygen with good ui
+- linux
+  - add Ubuntu CI job (scripts/setup-ubuntu.sh, offscreen tests, vcpkg binary cache)
+  - verify Linux/macOS presets end to end (only Windows clang-cl is verified so far)
+  - coverage target on Linux (setup_coverage_target is wired to unit_tests only)
 
-- examples
-  - qt qml example
-  - ftxui example
-  - raylib example
-  - crow example
-  - emscripten example
-  - cppwinrt scan
-  - bluez scan
+- nexus-test-tool-qml migration
+  - vcpkg: qtbase `widgets` feature (nexus uses QApplication + file dialogs), `qtserialport` port — each triggers a Qt rebuild
+  - move nexus `core/` into src/core, viewmodels into src/viewmodels as QML_ELEMENT (drop setContextProperty)
+  - add nexus qml/ files to QML_FILES in qml/CMakeLists.txt, fix `import "panels"`-style relative imports
+  - Spix E2E for the USB flow
 
-- continue create zephyr nrf
-- recreate nxsdgldr
+- other targets (build infra only, code layout carries over) — via PKG_MANAGER=none + a preset/toolchain
+  - embedded linux (Yocto / Boot2Qt SDK, eglfs)
+  - wasm (Qt for WebAssembly + emscripten)
+  - android / ios (Qt installer kits, androiddeployqt)
 
-## Bugs
+- docs generator (doxygen with a modern theme)
 
-- clang-cl-asan fails to compile in CI
-- selecting `conan` as default pkg manager fails to compile on some compilers (eg: `PKG_MANAGER: ${{ github.event.inputs.pkg-manager || 'conan' }}`)
+## Known issues
+
+- msvc-asan / clang-linux-asan / clang-linux-tsan not yet run with Qt in this template
+- clang-cl ASan needs a release-CRT (/MD) build of every dependency incl. Qt — no preset for it
+- QML tests find QtQuick.Controls through the app's deployed bin/<preset>/ — build the whole preset before ctest
 
 ## Skip
 
-- set vcenv (needed or not?)
-  - if msvc asan, set debugger target
-
-- test on clion for all features
-- test in vs for all features
-
-- add gcovr.cfg
-  
-- fuzz example
-- emscripten compiler for wasm (consider)
-
-- if user selects compiler that they dont hv, give graceful fallback
-
-- examples of bugs captured with sanitizers
-
-- move cecep project to use clangd instead
-
-- add license
-- docs generator (doxygen but with most modern ui)
-  - add doxyfile & doxygen
-  - create wiki for this project (cleanup current readme, VERY bloated, move content to wiki)
-- open for contributor: issues, discussions, contributions
-  - fix readme: logo & badge, pitch (problem to solve), quick start (inline code example), live demo
-  - add complete docs suite (tutorials, how-to-guides, understand, reference, release blog, release/change log)
-  - add compiler explore quick test
+- MinGW: vcpkg Qt (x64-mingw-* triplets + static QML plugins) is too fragile
+- Conan: no usable Qt
+- MemorySanitizer: needs Qt itself built with MSan
+- Qt for MCUs: different product, separate template

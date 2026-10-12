@@ -1,5 +1,5 @@
 # Normalize line endings so shell scripts survive a Windows checkout
-# (CRLF in a .sh breaks bash in WSL / the devcontainer). Aligns with .editorconfig (LF).
+# (CRLF in a .sh breaks bash in WSL / Linux). Aligns with .editorconfig (LF).
 * text=auto eol=lf
 
 # Binary artifacts — never normalize.

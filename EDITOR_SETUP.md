@@ -1,16 +1,15 @@
 # Editor Setup
 
-This project is **IDE- and OS-agnostic by design**. All language intelligence comes from
-[clangd](https://clangd.llvm.org/), an LSP server that every major editor can drive. The
-build is configured with CMake Presets, so the same commands work on Windows, Linux, and macOS.
+This project is **IDE- and OS-agnostic by design**. C++ language intelligence comes from
+[clangd](https://clangd.llvm.org/), QML intelligence from Qt's `qmlls`, and both are LSP servers
+every major editor can drive. The build is configured with CMake Presets, so the same commands work
+on Windows, Linux, and macOS.
 
 ## How the configuration is split
 
-There are two layers. Understanding the split is the key to setting up any editor:
-
 | Layer | Files | Who reads it |
 |-------|-------|--------------|
-| **Shared / portable** | `.clangd`, `.clang-tidy`, `.clang-format`, `.editorconfig`, `compile_commands.json` | Every clangd-based editor, identically. Commit these. |
+| **Shared / portable** | `.clangd`, `.clang-tidy`, `.clang-format`, `.qmlformat.ini`, `.editorconfig`, `compile_commands.json`, `.qmlls.ini` (generated) | Every clangd/qmlls-based editor, identically. |
 | **Per-editor launcher** | `.vscode/settings.json` (`clangd.arguments`), Neovim `cmd`, CLion settings, … | Each editor separately. These flags **cannot** live in `.clangd`. |
 
 `.clangd` holds all the *semantic* behavior (background index, IncludeCleaner, inlay hints,
@@ -20,22 +19,25 @@ command line — most importantly `--query-driver`, which clangd refuses to read
 
 ## Prerequisites
 
-- **LLVM/clangd** (this template targets LLVM 20.x) — `clangd`, `clang-format`, `clang-tidy`
+- **LLVM/clangd** — `clangd`, `clang-format`, `clang-tidy` (`scripts/setup-windows.ps1` / `scripts/setup-ubuntu.sh` install them)
 - **CMake ≥ 3.28** and **Ninja**
-- **vcpkg** (auto-detected; see `cmake/config_vcpkg.cmake`)
+- **vcpkg** (auto-detected; see `cmake/config_vcpkg.cmake`). Qt comes from it — the first configure
+  builds Qt from source (~1h), later configures restore it from vcpkg's binary cache.
+- **Windows:** configure/build from a *Developer PowerShell for VS 2022* (or an IDE that sets up the
+  MSVC environment) so clang-cl finds the Windows SDK and linker. If that shell points `VCPKG_ROOT` at
+  Visual Studio's bundled vcpkg, pin yours with `VCPKG_ROOT_PATH` (see `CMakeUserPresets.json.example`).
 
-## Step 1 — generate `compile_commands.json` (all editors)
+## Step 1 — configure a preset (all editors)
 
-clangd needs a compilation database. Configure any preset; CMake exports it and the
-`mirror_compile_commands` target copies it to the project root (where `.clangd` points):
+clangd needs a compilation database and qmlls needs `.qmlls.ini`; configuring any preset writes both
+(the `mirror_compile_commands` target copies `compile_commands.json` to the project root):
 
 ```sh
-# pick the preset for your platform/toolchain
-cmake --preset clang-linux-debug      # Linux
 cmake --preset clang-cl-debug         # Windows
+cmake --preset clang-linux-debug      # Linux
 cmake --preset appleclang-debug       # macOS
 
-cmake --build --preset clang-linux-debug   # generates + mirrors compile_commands.json
+cmake --build --preset clang-cl-debug
 ```
 
 List everything available with `cmake --list-presets`.
@@ -54,65 +56,59 @@ These mirror `.vscode/settings.json`. Replicate them in whatever editor you use:
 -j=4
 ```
 
-`--query-driver` lets clangd interrogate your compiler (gcc / clang-cl / mingw) for its system
+`--query-driver` lets clangd interrogate your compiler (gcc / clang / clang-cl) for its system
 include paths — essential on Windows and for any non-default-named driver.
+
+## QML in any editor
+
+- **Language server:** `qmlls` ships with Qt (vcpkg puts it in `build/<preset>/vcpkg_installed/<triplet>/tools/Qt6/bin/`).
+  CMake writes `.qmlls.ini` next to the QML sources (`QT_QML_GENERATE_QMLLS_INI`), which tells qmlls
+  where the build's `App` module lives — so completion knows `CounterViewModel` and the components.
+  It's machine-specific and gitignored.
+- **Formatting:** `.qmlformat.ini` is read by `qmlformat`, Qt Creator and the Qt VS Code extension;
+  `cmake --build --preset <p> --target format` formats C++ and QML together, `format-check` fails CI on drift.
+- **Linting:** `cmake --build --preset <p> --target all_qmllint`.
+- **Profiling QML:** Qt's QML Profiler (Qt Creator) or `qmlprofiler`. Tracy (`ENABLE_TRACY`) covers the C++ side.
 
 ---
 
 ## VS Code
 
 Already configured. Install the recommended extensions (`.vscode/extensions.json`): **clangd**,
-**CMake Tools**, **CodeLLDB** (debugging), and **EditorConfig** (honors `.editorconfig` — VS Code
-needs this extension, unlike VS/CLion which read it natively). The MS C/C++ extension (`cpptools`)
-is **optional** — only its *debugger* is used (for the MSVC/MinGW launch configs below); its
-IntelliSense, formatting, and analysis are disabled in settings, so it never competes with clangd.
-Nothing else to do.
+**CMake Tools**, **CodeLLDB** (debugging), **EditorConfig**, and the official **Qt Qml** / **Qt C++**
+extensions (qmlls, QML formatting, Qt type visualizers). The MS C/C++ extension (`cpptools`) is
+**optional** — only its *debugger* is used (MSVC and GDB launch configs); its IntelliSense,
+formatting, and analysis are disabled in settings, so it never competes with clangd.
+
+## Qt Creator
+
+Open `CMakeLists.txt`; Qt Creator imports `CMakePresets.json` and offers the presets as kits/build
+configurations. Qt comes from the preset's vcpkg toolchain, not from a Qt version registered in
+Qt Creator, so pick the preset-based configuration rather than a Qt-installer kit. `.clang-format`,
+`.qmlformat.ini` and the QML tooling (qmlls, QML Profiler, QML debugger) are used natively.
 
 ## CLion
 
-CLion has first-class native support for everything in this template — **no plugins needed**.
+CLion has native support for everything in this template — **no plugins needed**.
 
 1. **Open the project folder.** CLion detects `CMakePresets.json` and lists the presets under
-   *Settings → Build, Execution, Deployment → CMake*. Enable the preset(s) for your platform
-   (e.g. `appleclang-debug`, `clang-linux-debug`, `clang-cl-debug`). The vcpkg toolchain file is
-   wired in by the preset, so no manual toolchain setup is required.
-2. **clang-format** — CLion auto-detects `.clang-format`. Confirm
-   *Settings → Editor → Code Style* shows **“Enable ClangFormat”** (it prompts on first open).
-   Now *Reformat Code* uses your project style.
-3. **clang-tidy** — CLion reads project `.clang-tidy` automatically. Keep
-   *Settings → Editor → Inspections → C/C++ → General → Clang-Tidy →* **“Prefer .clang-tidy
-   files over IDE settings”** checked (default).
-4. **Run/Debug** — CLion creates run configurations from CMake targets automatically; LLDB/GDB
-   debugging works out of the box per preset.
+   *Settings → Build, Execution, Deployment → CMake*. Enable the preset(s) for your platform.
+   The vcpkg toolchain file is wired in by the preset.
+2. **clang-format / clang-tidy** — read from `.clang-format` / `.clang-tidy` automatically.
+3. **Run/Debug** — CLion creates run configurations from the CMake targets (app, `unit_tests`,
+   `viewmodel_tests`, `qml_tests`) automatically.
+4. **QML** — CLion has basic QML highlighting; for qmlls-level completion use Qt Creator or VS Code.
 
-> **Important nuance:** CLion does **not** read the project `.clangd` file or
-> `compile_commands.json` — it builds its own code model directly from CMake and runs its
-> *bundled* clangd configured through IDE settings. So the semantic options in `.clangd`
-> (inlay hints, IncludeCleaner, etc.) are controlled in CLion via
-> *Settings → Editor → Inlay Hints* and *Languages & Frameworks → C/C++ → Clangd*, not the file.
-> `.clang-format` and `.clang-tidy`, by contrast, **are** honored natively. Practically: presets,
-> formatting, and linting "just work"; only the clangd *semantic toggles* are set in the GUI.
-
-CLion writes its project metadata to `.idea/` and builds into `cmake-build-*/` — both are
-gitignored.
+> CLion does **not** read the project `.clangd` or `compile_commands.json` — it builds its own code
+> model from CMake. `.clang-format` and `.clang-tidy` are honored; clangd *semantic toggles* (inlay
+> hints etc.) are set in its GUI. `.idea/` and `cmake-build-*/` are gitignored.
 
 ## Visual Studio (full IDE)
 
-Visual Studio 2022 (17.4+) works natively — **note that VS uses its own C++ IntelliSense, not
-clangd**, so `.clangd` and `compile_commands.json` are ignored. Everything else is picked up:
-
-1. **Open the folder** (File → Open → Folder). VS reads `CMakePresets.json` and lists the presets
-   in the configuration dropdown — pick `msvc-debug` (VS 2022 generator) or any Ninja preset.
-2. **Formatting** — VS auto-applies `.clang-format` (on by default; Tools → Options → Text Editor
-   → C/C++ → Formatting).
-3. **clang-tidy** — enable it under the project's Code Analysis settings; VS uses the project
-   `.clang-tidy`.
-4. **Debugging** — the native VS debugger runs the CMake target (from `bin/msvc`); no setup.
-5. **vcpkg** — the toolchain is wired by the preset, so Configure resolves dependencies.
-
-`.editorconfig`, `.clang-format`, and `.clang-tidy` are all honored natively; VS-generated `.vs/`
-is gitignored. The clangd-only niceties (IncludeCleaner, exact inlay hints) come from VS's own
-IntelliSense instead — expected, not a gap.
+Visual Studio 2022 (17.4+) opens the folder and lists `CMakePresets.json` presets in the configuration
+dropdown — pick `msvc-debug` or a `clang-cl-*` preset. VS uses its own IntelliSense (not clangd), honors
+`.clang-format`, `.clang-tidy` and `.editorconfig`, and runs the target from `bin/<preset>/`. There is
+no QML language support beyond highlighting.
 
 ## Neovim (nvim-lspconfig)
 
@@ -129,9 +125,8 @@ require('lspconfig').clangd.setup({
     '-j=4',
   },
 })
+require('lspconfig').qmlls.setup({}) -- qmlls on PATH; reads the generated .qmlls.ini
 ```
-
-(Semantic behavior still comes from the project `.clangd`.)
 
 ## Emacs
 
@@ -148,144 +143,67 @@ require('lspconfig').clangd.setup({
 
 **lsp-mode**: set `(setq lsp-clients-clangd-args '("--query-driver=..." ...))`.
 
-## Zed
+## Zed / Helix / Vim / Sublime
 
-In `.zed/settings.json` (project) or your user settings:
-
-```json
-{
-  "lsp": {
-    "clangd": {
-      "arguments": [
-        "--query-driver=**/clang*,**/clang-cl*,**/clang++*,**/g++*,**/gcc*,**/c++*",
-        "--header-insertion=iwyu",
-        "--completion-style=detailed",
-        "--function-arg-placeholders=true",
-        "--pch-storage=memory"
-      ]
-    }
-  }
-}
-```
-
-## Helix
-
-`.helix/languages.toml`:
-
-```toml
-[language-server.clangd]
-command = "clangd"
-args = ["--query-driver=**/clang*,**/clang-cl*,**/clang++*,**/g++*,**/gcc*,**/c++*",
-        "--header-insertion=iwyu", "--completion-style=detailed",
-        "--function-arg-placeholders=true", "--pch-storage=memory", "-j=4"]
-```
-
-## Vim (coc.nvim) / Sublime Text (LSP)
-
-Both install a clangd wrapper (`coc-clangd`, `LSP-clangd`) that auto-finds clangd. Add the same
-flag list to the package's `initializationOptions`/`args` setting.
+Pass the same flag list from Step 2 to the editor's clangd configuration (`lsp.clangd.arguments` in
+Zed, `[language-server.clangd] args` in Helix, `coc-clangd` / `LSP-clangd` settings in Vim/Sublime).
+For QML, point the editor's LSP client at `qmlls`.
 
 ---
 
 ## Debugging
 
-Debug builds carry symbols automatically — the `*-debug` presets set `CMAKE_BUILD_TYPE=Debug`.
-Each preset writes to its own `bin/<toolchain>/` directory *on purpose* (so toolchains don't
-clobber each other); debugging stays **preset-agnostic** because each IDE resolves the binary from
-the *active* CMake configuration, not a hard-coded path. No unified output dir, no duplication.
+The `*-debug` presets build with symbols, and each preset writes to its own `bin/<preset>/`. On
+Windows the debug build keeps a console (qDebug/QML warnings visible); release builds don't.
 
-**VS Code** — press **F5** and choose a config from the dropdown. All three use
-`${command:cmake.launchTargetPath}`, so they follow the active CMake Tools target/preset (pick
-`app` / `unit_tests` in the status bar):
+**VS Code** — press **F5** and pick a config. All use `${command:cmake.launchTargetPath}`, so they follow
+the active CMake Tools target/preset:
 
-- **Debug (LLDB · all OS)** — default, via CodeLLDB (`vadimcn.vscode-lldb`). Best for Clang, Apple
-  Clang, clang-cl, and GCC on Linux/macOS/Windows. No cpptools needed.
-- **Debug (Windows MSVC · cppvsdbg)** — native Microsoft debugger for `msvc-*` builds; best
-  PDB/STL visualization on Windows.
-- **Debug (GDB · MinGW & GCC)** — `cppdbg` + GDB with pretty-printing; natural for `mingw-*` and
-  `gcc-linux-*`.
+- **Debug (LLDB · all OS)** — default, via CodeLLDB. Clang, Apple Clang, clang-cl, GCC.
+- **Debug (Windows MSVC · cppvsdbg)** — native Microsoft debugger; best PDB/Qt visualization on Windows.
+- **Debug (GDB · GCC Linux)** — `cppdbg` + GDB with pretty-printing.
 
-The last two use the C/C++ extension (`ms-vscode.cpptools`) **only as a debugger** — it's optional,
-and its IntelliSense/formatting/analysis are disabled in `settings.json` so it never competes with
-clangd. Clang-only users can ignore it and just use the LLDB config.
-
-**CLion** — zero setup. CLion generates a run/debug configuration per CMake target and uses the
-toolchain's native debugger (GDB/LLDB on Unix & MinGW, the LLDB-based debugger on MSVC). Shared
-configs are committed in `.run/` (`app`, `unit_tests`), so everyone gets the same named entries;
-they run under whichever CMake profile is selected.
-
-**CLI / any editor** — build a debug preset, then point your debugger at the preset's binary:
+**CLI** — build a debug preset, then point your debugger at the preset's binary:
 
 ```sh
 cmake --build --preset clang-linux-debug
-lldb ./bin/linux/cpp_project_template     # or: gdb ./bin/linux/cpp_project_template
+lldb ./bin/clang-linux-debug/qt_qml_simple_hello
 ```
-
-(On Windows the debug binary gets a `d` suffix, e.g. `bin/clang-cl/cpp_project_templated.exe`.)
-
-**Neovim** — use `nvim-dap` with the `codelldb` adapter; set `program` to the preset's binary, or
-wire it to your cmake-tools.nvim launch target for the same preset-agnostic behavior.
 
 ---
 
 ## Sanitizers
 
-Sanitizers are exposed as **debug-profile presets** (each builds + runs the sanitizer "trip-wire"
-death tests via ctest):
+Sanitizers are exposed as presets (each builds and runs the sanitizer "trip-wire" death tests via ctest):
 
 | Preset | Sanitizers | Platform |
 |--------|-----------|----------|
 | `clang-linux-asan` | UBSan + ASan + LSan | Linux |
 | `clang-linux-tsan` | UBSan + TSan | Linux |
-| `clang-linux-msan` | UBSan + MSan | Linux (clang only) |
 | `msvc-asan` | ASan | Windows (MSVC) |
-| `clang-cl-asan` | ASan | Windows (clang-cl) |
 
 ```bash
 cmake --preset clang-linux-asan && cmake --build --preset clang-linux-asan && ctest --preset test-clang-linux-asan
 ```
 
-ASan/TSan/MSan are **mutually exclusive** (one per build); UBSan is the Linux baseline. TSan/MSan/LSan
-do **not** exist on Windows — only ASan.
+ASan and TSan are **mutually exclusive** (one per build); UBSan is the GCC/Clang baseline. Windows has
+ASan only. MemorySanitizer is not offered: it needs every library, Qt included, built with it.
 
-### Sanitizers on Windows (the sharp edges)
+Windows notes:
 
-Windows ASan needs more care than Linux. Two things to know:
-
-- **`msvc-asan` is the easy path.** cl.exe ASan uses the debug CRT (`/MDd`), which matches the
-  default debug dependencies from vcpkg/Conan — so it just works.
-- **`clang-cl-asan` requires the *release* CRT (`/MD`)** — clang-cl ASan cannot link `/MDd`. That
-  means its **dependencies must also be `/MD`**, or you hit `_ITERATOR_DEBUG_LEVEL mismatch (0 vs 2)`
-  at link. This template handles it for Conan via `cmake/conan-profiles/clang-cl-windows-asan.ini`
-  (`compiler.runtime_type=Release`), auto-selected by the `clang-cl-asan` preset.
-  - **Using vcpkg instead of Conan?** You'd need a release-CRT triplet for `clang-cl-asan` (vcpkg's
-    default debug triplet is `/MDd`). Conan is handled out of the box.
+- **`msvc-asan` is the Windows path.** cl.exe ASan uses the debug CRT (`/MDd`), matching vcpkg's debug libraries.
+- **clang-cl ASan needs the release CRT (`/MD`)**, so every dependency (Qt included) would have to be
+  built `/MD` too — no preset is provided for it.
 - **STL container annotations are disabled under Windows ASan** (`_DISABLE_STRING_ANNOTATION` /
-  `_DISABLE_VECTOR_ANNOTATION`). Prebuilt deps aren't ASan-instrumented, so leaving annotations on
-  causes `LNK2038 annotate_string/annotate_vector` mismatches. Trade-off: no STL container-overflow
-  detection; heap-buffer-overflow and use-after-free detection are unaffected.
-- The **ASan runtime DLL** (`clang_rt.asan_dynamic-x86_64.dll`) is deployed next to the executables
-  automatically (`deploy_asan_runtime` in `cmake/sanitizer_analyzer.cmake`).
-
-Rule of thumb: on Windows, prefer **`msvc-asan`** unless you specifically build with clang-cl.
+  `_DISABLE_VECTOR_ANNOTATION`) because prebuilt deps aren't ASan-instrumented.
+- The **ASan runtime DLL** is deployed next to the executables automatically (`deploy_asan_runtime`
+  in `cmake/sanitizers.cmake`).
 
 ---
 
 ## Alternative: machine-wide clangd flags
 
-If you'd rather not repeat the flags per editor, put them in your **user** clangd config — it
-applies to every project and is allowed to set `--query-driver` equivalents:
-
-- Linux/macOS: `~/.config/clangd/config.yaml`
-- Windows: `%LocalAppData%\clangd\config.yaml`
-
-```yaml
-CompileFlags:
-  CompilationDatabase: build
-# Note: --query-driver, --header-insertion etc. are command-line only; for those,
-# set them in your editor's clangd launch args (above). The user config.yaml covers
-# the same keys as the project .clangd.
-```
-
-The project `.clangd` already covers the index/diagnostics/inlay-hint behavior, so most editors
-only need the launch flags from Step 2.
+If you'd rather not repeat the flags per editor, put them in your **user** clangd config
+(`~/.config/clangd/config.yaml` on Linux/macOS, `%LocalAppData%\clangd\config.yaml` on Windows).
+`--query-driver` and the other launch flags remain command-line only; the user config covers the same
+keys as the project `.clangd`.

@@ -1,12 +1,11 @@
 #requires -Version 5.1
 <#
-  scripts/setup-windows.ps1 — install the native Windows C++ toolchain via winget.
-  Idempotent. For developers who use neither WSL nor containers (clang-cl / MSVC path).
+  scripts/setup-windows.ps1 — install the native Windows C++/Qt toolchain via winget + vcpkg.
+  Idempotent. clang-cl / MSVC path. Qt itself comes from vcpkg on first configure (~1h, then cached).
 
     pwsh -File scripts/setup-windows.ps1
-    pwsh -File scripts/setup-windows.ps1 -WithVcpkg
 #>
-param([switch]$WithVcpkg)
+param([switch]$WithVcpkg) # accepted for compatibility; vcpkg is always installed now
 $ErrorActionPreference = 'Stop'
 
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
@@ -51,24 +50,16 @@ if ($LASTEXITCODE -ne 0) {
   $global:LASTEXITCODE = 0
 }
 
-Write-Host "==> conan 2 (the project's default package manager)"
-if (Get-Command python -ErrorAction SilentlyContinue) {
-  python -m pip install --upgrade conan
-  conan profile detect --force *> $null
-} else {
-  Write-Warning "python not on PATH yet — open a NEW terminal, then: pip install conan; conan profile detect"
+Write-Host "==> vcpkg (C:\vcpkg)"
+if (-not (Test-Path 'C:\vcpkg')) {
+  git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+  & C:\vcpkg\bootstrap-vcpkg.bat -disableMetrics
 }
-
-if ($WithVcpkg) {
-  Write-Host "==> vcpkg (optional)"
-  if (-not (Test-Path 'C:\vcpkg')) {
-    git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
-    & C:\vcpkg\bootstrap-vcpkg.bat -disableMetrics
-  }
-  [Environment]::SetEnvironmentVariable('VCPKG_ROOT', 'C:\vcpkg', 'User')
-}
+[Environment]::SetEnvironmentVariable('VCPKG_ROOT', 'C:\vcpkg', 'User')
 
 Write-Host ""
 Write-Host "Done. clang-cl is provided by LLVM.LLVM; the MSVC headers + Windows SDK come from the"
 Write-Host "VS Build Tools C++ workload installed above. Open a NEW terminal so PATH refreshes, then:"
-Write-Host "  cmake --preset clang-cl-debug && cmake --build --preset clang-cl-debug"
+Write-Host "  cmake --preset clang-cl-debug -D BUILD_TESTING=ON && cmake --build --preset clang-cl-debug"
+Write-Host "  ctest --preset test-clang-cl-debug"
+Write-Host "(Run these from a 'Developer PowerShell for VS 2022' so clang-cl finds the SDK and linker.)"

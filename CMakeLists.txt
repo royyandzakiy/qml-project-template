@@ -7,11 +7,11 @@ include(project_options.local.cmake OPTIONAL) # create & modify to change locall
 include(project_options.cmake) # modify to change for all developers
 
 # If this project is consumed via add_subdirectory(), the parent owns the provider/toolchain, hence
-# omit this setup_package_maanager(). But because before project(), PROJECT_IS_TOP_LEVEL isn't set yet
+# omit this setup_package_manager(). But because before project(), PROJECT_IS_TOP_LEVEL isn't set yet
 # hence use the source-dir check
 include(cmake/package_manager.cmake)
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-  setup_package_manager() # dispatches to vcpkg / conan / none per PKG_MANAGER
+  setup_package_manager() # dispatches to vcpkg / none per PKG_MANAGER
 endif()
 
 #=========================
@@ -36,20 +36,17 @@ if(PROJECT_IS_TOP_LEVEL) # format & setup clangd
   include(cmake/clangd.cmake) # mirror compile_commands.json for clangd
 endif()
 
-include(cmake/compiler.cmake)            # warnings, strict, build-type guard, debug postfix
+include(cmake/compiler.cmake)            # warnings, strict, build-type guard
 include(cmake/build_acceleration.cmake)  # fast linker (mold/lld) + ccache
 
-include(cmake/sanitizers.cmake)          # ASan/TSan/MSan/UBSan flags + deploy_asan_runtime()
+include(cmake/sanitizers.cmake)          # ASan/TSan/UBSan flags + deploy_asan_runtime()
 include(cmake/analyzers.cmake)           # clang-tidy discovery
-include(cmake/profiler.cmake)            # Tracy / Perfetto / ClangBuildAnalyzer (when enabled)
+include(cmake/profiler.cmake)            # Tracy (when ENABLE_TRACY)
 include(cmake/configure_target.cmake)    # defines configure_target() — PCH, unity, tidy, profiler link, ASan deploy
-include(cmake/qt_deploy.cmake)           # defines deploy_qt_runtime() — windeployqt next to the exe (Windows)
-
-#=========================
-# Version Header
-#=========================
-if(GENERATE_VERSION_HEADER)
-  generate_version_header()
+include(cmake/qt_deploy.cmake)           # deploy_qt_runtime() / install_qt_runtime() — windeployqt + qt.conf (Windows)
+if(BUILD_TESTING)
+  # Before the targets: its instrumentation flags only reach targets created after this include.
+  include(cmake/coverage.cmake)          # coverage flags + setup_coverage_target() (when ENABLE_COVERAGE)
 endif()
 
 #=========================
@@ -63,7 +60,6 @@ endif()
 #=========================
 # Targets
 #=========================
-# Add or remove targets as needed
 add_subdirectory(src/core) # pure C++ logic, no Qt (always built, so its tests run without Qt)
 if(BUILD_APP)
   add_subdirectory(qml) # static QML module (URI App): UI + viewmodels, linked into the app as a plugin
@@ -72,15 +68,11 @@ if(BUILD_APP)
     include(cmake/packaging.cmake) # cpack ZIP of the installed app
   endif()
 endif()
-if(BUILD_EXAMPLES)
-  add_subdirectory(examples)
-endif()
 
 #=========================
 # Tests & Coverage
 #=========================
 if(BUILD_TESTING)
-  include(cmake/coverage.cmake) # coverage instrumentation + setup_coverage_target() (when ENABLE_COVERAGE)
   enable_testing() # ctest / gtest_discover_tests register the unit tests
   add_subdirectory(test)
   if(ENABLE_COVERAGE AND TARGET unit_tests)

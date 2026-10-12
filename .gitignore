@@ -67,8 +67,9 @@ coverage/
 .history/
 *.code-workspace
 
-# ----- Claude Code local settings -----
+# ----- Claude Code local settings / code index -----
 .claude/settings.local.json
+.codebase-memory/
 
 # ----- OS junk -----
 .DS_Store
