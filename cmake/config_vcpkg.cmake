@@ -25,6 +25,9 @@ endif()
 if(ENABLE_TRACY)
   list(APPEND VCPKG_MANIFEST_FEATURES "tracy")
 endif()
+if(ENABLE_SPIX)
+  list(APPEND VCPKG_MANIFEST_FEATURES "spix")
+endif()
 
 # Find vcpkg root
 # Priority: CMake var (preset/-D) > env var > vcpkg in PATH > common default paths > project subdir > error

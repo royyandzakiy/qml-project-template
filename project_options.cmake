@@ -31,6 +31,11 @@ if(ENABLE_SANITIZERS)
   option(ENABLE_MSAN "MemorySanitizer — detects uninitialized reads (Clang only, requires instrumented libc++)" OFF)
 endif()
 
+# ------ UI Automation (E2E) ------
+# Embeds the Spix server in the app: it listens on a TCP port (9000, or SPIX_PORT) and lets scripts
+# click and read QML items. For test builds only — never ship a build with this ON.
+option(ENABLE_SPIX "Embed the Spix UI-automation server for E2E tests (test/e2e/)" OFF)
+
 # ------ Linters & Static Analyzers ------
 option(ENABLE_CLANG_TIDY "Run clang-tidy on first-party production code (no-op if clang-tidy isn't installed)" OFF)
 

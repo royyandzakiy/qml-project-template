@@ -4,6 +4,7 @@ import QtQuick.Layouts
 
 ApplicationWindow {
     id: root
+    objectName: "mainWindow" // root of Spix item paths, e.g. "mainWindow/incrementButton"
     visible: true
     width: 480
     height: 320
@@ -25,6 +26,7 @@ ApplicationWindow {
         }
 
         CounterCard {
+            objectName: "counterCard"
             Layout.alignment: Qt.AlignHCenter
             label: counter.label
             onIncrementClicked: counter.increment()

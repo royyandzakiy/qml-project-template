@@ -43,6 +43,32 @@ if(BUILD_APP)
   add_executable(viewmodel_tests test_counter_view_model.cpp)
   target_link_libraries(viewmodel_tests PRIVATE app_qml Qt6::Test)
   add_test(NAME viewmodel_tests COMMAND viewmodel_tests)
+
+  # ===========================================================================
+  # QML tests — Qt Quick Test runs every test/qml/tst_*.qml (TestCase items: component tests and a
+  # Main.qml smoke test). Builds into the same bin/<preset>/ as the app, so it finds QtQuick.Controls
+  # through the app's windeployqt deploy + qt.conf there.
+  # ===========================================================================
+  add_executable(qml_tests qml/tst_qml_main.cpp)
+  target_link_libraries(qml_tests PRIVATE app_qmlplugin Qt6::QuickTest Qt6::QuickControls2)
+  target_compile_definitions(qml_tests PRIVATE QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/qml")
+  add_dependencies(qml_tests ${PROJECT_NAME}) # make sure the Qt runtime deploy has run
+  add_test(NAME qml_tests COMMAND qml_tests)
+
+  # On Windows, QtTest logs to OutputDebugString (invisible) unless a console is attached, which it
+  # isn't under ctest or CI. Force normal output so failures show up in --output-on-failure / CI logs.
+  set_tests_properties(viewmodel_tests qml_tests PROPERTIES ENVIRONMENT "QT_FORCE_STDERR_LOGGING=1")
+
+  # ===========================================================================
+  # E2E tests — Python drives the real app through Spix (ENABLE_SPIX=ON builds only).
+  # ===========================================================================
+  if(ENABLE_SPIX)
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+    add_test(NAME e2e_counter COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/e2e/test_counter_e2e.py"
+                                      --app "$<TARGET_FILE:${PROJECT_NAME}>")
+    # One app instance on the Spix port at a time.
+    set_tests_properties(e2e_counter PROPERTIES RUN_SERIAL ON TIMEOUT 120)
+  endif()
 endif()
 
 # =============================================================================

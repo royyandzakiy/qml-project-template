@@ -324,6 +324,18 @@
                                 "ENABLE_UNITY_BUILD": "ON",
                                 "BUILD_EXAMPLES": "ON"
                         }
+                },
+                {
+                        "name": "clang-cl-e2e",
+                        "displayName": "Clang-CL Debug + Spix E2E (test build, never ship)",
+                        "inherits": [
+                                "clang-cl-base",
+                                "build-debug"
+                        ],
+                        "cacheVariables": {
+                                "BUILD_TESTING": "ON",
+                                "ENABLE_SPIX": "ON"
+                        }
                 }
         ],
         "buildPresets": [
@@ -433,6 +445,11 @@
                         "name": "clang-linux-full",
                         "inherits": "build-type-debug",
                         "configurePreset": "clang-linux-full"
+                },
+                {
+                        "name": "clang-cl-e2e",
+                        "inherits": "build-type-debug",
+                        "configurePreset": "clang-cl-e2e"
                 }
         ],
         "testPresets": [
@@ -535,6 +552,11 @@
                         "name": "test-clang-linux-full",
                         "inherits": "base-test",
                         "configurePreset": "clang-linux-full"
+                },
+                {
+                        "name": "test-clang-cl-e2e",
+                        "inherits": "base-test",
+                        "configurePreset": "clang-cl-e2e"
                 }
         ]
 }
