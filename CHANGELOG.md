@@ -2,6 +2,14 @@
 
 Notable changes to this template (condensed — not every commit). Newest first.
 
+## 2026-10-12 — 3D viewer tab
+- `Main.qml` is now tabbed (Counter / 3D Viewer). `qml/components/ModelViewer.qml`: Qt Quick 3D
+  cube (built-in primitive, no asset importer) with mouse orbit/zoom (`OrbitCameraController`),
+  Zoom in / Zoom out / Reset buttons and an auto-rotate switch.
+- `qtquick3d` added to vcpkg.json (no assimp; qtbase unchanged, so the cached Qt is reused).
+- Tests: `tst_model_viewer.qml` (zoom limits, reset, auto-rotate), a tab-switch case in
+  `tst_main_window.qml`, and a Spix E2E for the 3D tab.
+
 ## 2026-10-12 — Cleanup for QML development
 - Removed: Conan (`conanfile.py`, `config_conan.cmake`, profiles), `.devcontainer/`, `.run/` (CLion),
   `examples/`, Perfetto, ClangBuildAnalyzer, MSan, MinGW and `clang-cl-asan` presets, CI badge

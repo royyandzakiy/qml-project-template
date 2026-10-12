@@ -16,6 +16,7 @@ qt_add_qml_module(app_qml
     QML_FILES
         Main.qml
         components/CounterCard.qml
+        components/ModelViewer.qml
     SOURCES
         ${PROJECT_SOURCE_DIR}/src/viewmodels/counter_view_model.hpp
         ${PROJECT_SOURCE_DIR}/src/viewmodels/counter_view_model.cpp
@@ -31,4 +32,5 @@ target_link_libraries(app_qml
     PUBLIC
         app_core
         Qt6::Qml
+        Qt6::Quick3D # ModelViewer.qml (QtQuick3D); qmlcachegen's compiled QML links against it
 )

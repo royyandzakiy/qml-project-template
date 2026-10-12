@@ -70,6 +70,23 @@ class CounterE2E(unittest.TestCase):
         self.assertEqual(self.label(), "Not clicked yet")
         self.assertEqual(self.spix.getErrors(), [])
 
+    def test_viewer_tab_zoom(self):
+        self.spix.mouseClick("mainWindow/viewerTab")
+        self.assertTrue(self.spix.waitForItem("mainWindow/zoomInButton", 5000), "3D tab didn't open")
+
+        def distance():
+            return float(self.spix.getStringProperty("mainWindow/modelViewer", "distance"))
+
+        start = distance()
+        self.spix.mouseClick("mainWindow/zoomInButton")
+        self.spix.wait(100)
+        self.assertLess(distance(), start)
+
+        self.spix.mouseClick("mainWindow/resetViewButton")
+        self.spix.wait(100)
+        self.assertEqual(distance(), start)
+        self.assertEqual(self.spix.getErrors(), [])
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

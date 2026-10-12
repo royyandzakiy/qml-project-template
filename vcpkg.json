@@ -47,7 +47,8 @@
         }
       ]
     },
-    "qtdeclarative"
+    "qtdeclarative",
+    "qtquick3d"
   ],
   "features": {
     "tracy": {

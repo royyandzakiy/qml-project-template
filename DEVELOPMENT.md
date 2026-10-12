@@ -25,6 +25,7 @@
 
 ## Known issues
 
+- Quick 3D needs a GPU (RHI) backend: headless Linux tests (`QT_QPA_PLATFORM=offscreen`) may not render the 3D tab — use xvfb + Mesa (llvmpipe) on a Linux CI runner
 - msvc-asan / clang-linux-asan / clang-linux-tsan not yet run with Qt in this template
 - clang-cl ASan needs a release-CRT (/MD) build of every dependency incl. Qt — no preset for it
 - QML tests find QtQuick.Controls through the app's deployed bin/<preset>/ — build the whole preset before ctest

@@ -1,8 +1,8 @@
 find_package(fmt CONFIG REQUIRED)
 
-# Qt comes from vcpkg (qtbase + qtdeclarative in vcpkg.json). Quick/Qml/QuickControls2 are all in qtdeclarative.
+# Qt comes from vcpkg (vcpkg.json): Quick/Qml/QuickControls2 are in qtdeclarative, Quick3D in qtquick3d.
 if(BUILD_APP)
-  set(_qt_components Core Gui Qml Quick QuickControls2)
+  set(_qt_components Core Gui Qml Quick QuickControls2 Quick3D)
   if(BUILD_TESTING)
     list(APPEND _qt_components Test QuickTest) # QtTest (viewmodels) + Qt Quick Test (QML) under test/
   endif()

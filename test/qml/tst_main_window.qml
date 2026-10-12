@@ -27,4 +27,21 @@ TestCase {
         mouseClick(findChild(window.contentItem, "resetButton"));
         compare(label.text, "Not clicked yet");
     }
+
+    function test_viewerTabShows3D() {
+        const window = createTemporaryObject(mainComponent, testCase);
+        verify(window);
+        verify(waitForRendering(window.contentItem));
+
+        const viewer = findChild(window.contentItem, "modelViewer");
+        verify(!viewer.visible, "viewer tab starts hidden");
+
+        mouseClick(findChild(window.header, "viewerTab")); // the TabBar is the window header
+        tryVerify(() => viewer.visible);
+        waitForItemPolished(viewer);
+
+        const start = viewer.distance;
+        mouseClick(findChild(viewer, "zoomInButton"));
+        verify(viewer.distance < start);
+    }
 }
