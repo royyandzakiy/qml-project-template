@@ -13,6 +13,9 @@ Notable changes to this template (condensed — not every commit). Newest first.
   with "Cannot load library qquick3dplugind.dll" for lack of `meshoptimizer.dll`; the JPEG plugin
   silently lacked `jpeg62.dll`). `cmake/copy_runtime_deps.cmake` now fills them in from vcpkg, for
   both `bin/<preset>/` and `cmake --install` / the zip.
+  It reads DLL imports with `llvm-objdump` (ships with LLVM next to clang-cl) and falls back to
+  `dumpbin`, so it also works outside a VS developer shell (e.g. VS Code builds); if neither is
+  found it now warns instead of silently skipping.
 - README: Mermaid diagrams (architecture, click flow, build/test/ship) and screenshots in `docs/`.
 
 ## 2026-10-12 — Cleanup for QML development

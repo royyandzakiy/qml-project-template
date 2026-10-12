@@ -10,8 +10,9 @@
 #
 # Call both AFTER the target is created (install_qt_runtime after its install(TARGETS)).
 
-# Sets _windeployqt (a $<CONFIG>-aware genex), _qt_conf and _deps_cmd (the runtime-deps step, or
-# empty without vcpkg/dumpbin) in the caller's scope; returns FALSE if windeployqt is missing.
+# Sets _windeployqt (a $<CONFIG>-aware genex), _qt_conf, and _deps_dir/_deps_tool/_deps_tool_cmd for the
+# runtime-deps step (_deps_dir empty when it can't run) in the caller's scope; returns FALSE if
+# windeployqt is missing.
 function(_qt_deploy_setup out_ok)
   set(${out_ok} FALSE PARENT_SCOPE)
   if(NOT WIN32)
@@ -32,14 +33,28 @@ function(_qt_deploy_setup out_ok)
   set(_qt_conf "${_conf}" PARENT_SCOPE)
 
   # Non-Qt DLLs needed by windeployqt's output (e.g. meshoptimizer for Quick 3D) come from vcpkg's
-  # bin folder for the active config. dumpbin is on PATH in a VS developer environment.
+  # bin folder for the active config. Reading a DLL's imports needs llvm-objdump (ships with LLVM, next
+  # to clang-cl, so it's there without a VS developer environment, e.g. in VS Code) or else dumpbin
+  # (only on PATH inside a VS developer environment).
+  get_filename_component(_cxx_dir "${CMAKE_CXX_COMPILER}" DIRECTORY)
+  find_program(LLVM_OBJDUMP_EXE llvm-objdump HINTS "${_cxx_dir}" "$ENV{ProgramFiles}/LLVM/bin")
   find_program(DUMPBIN_EXE dumpbin)
-  if(DUMPBIN_EXE AND VCPKG_INSTALLED_DIR AND VCPKG_TARGET_TRIPLET)
+  if(LLVM_OBJDUMP_EXE)
+    set(_deps_tool objdump)
+    set(_deps_tool_cmd "${LLVM_OBJDUMP_EXE}")
+  elseif(DUMPBIN_EXE)
+    set(_deps_tool dumpbin)
+    set(_deps_tool_cmd "${DUMPBIN_EXE}")
+  endif()
+  if(_deps_tool AND VCPKG_INSTALLED_DIR AND VCPKG_TARGET_TRIPLET)
     set(_deps_dir "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}$<$<CONFIG:Debug>:/debug>/bin" PARENT_SCOPE)
     set(_deps_script "${PROJECT_SOURCE_DIR}/cmake/copy_runtime_deps.cmake" PARENT_SCOPE)
+    set(_deps_tool "${_deps_tool}" PARENT_SCOPE)
+    set(_deps_tool_cmd "${_deps_tool_cmd}" PARENT_SCOPE)
   else()
     set(_deps_dir "" PARENT_SCOPE)
-    message(STATUS "[qt] dumpbin or vcpkg not found — non-Qt runtime DLLs of Qt plugins won't be copied")
+    message(WARNING "[qt] llvm-objdump/dumpbin or vcpkg not found — non-Qt DLLs needed by Qt plugins "
+                    "(e.g. meshoptimizer.dll for Quick 3D) won't be copied, so those QML imports may fail to load")
   endif()
   set(${out_ok} TRUE PARENT_SCOPE)
 endfunction()
@@ -54,7 +69,7 @@ function(deploy_qt_runtime target)
   set(_deps_step "")
   if(_deps_dir)
     set(_deps_step COMMAND ${CMAKE_COMMAND} "-DDIR=$<TARGET_FILE_DIR:${target}>" "-DDEP_DIR=${_deps_dir}"
-                   "-DDUMPBIN=${DUMPBIN_EXE}" -P "${_deps_script}")
+                   "-DTOOL=${_deps_tool}" "-DTOOL_COMMAND=${_deps_tool_cmd}" -P "${_deps_script}")
   endif()
   add_custom_command(
     TARGET ${target}
@@ -97,7 +112,8 @@ function(install_qt_runtime target)
       CODE "
       set(DIR \"\${CMAKE_INSTALL_PREFIX}/${arg_DESTINATION}\")
       set(DEP_DIR \"${_deps_dir}\")
-      set(DUMPBIN \"${DUMPBIN_EXE}\")
+      set(TOOL \"${_deps_tool}\")
+      set(TOOL_COMMAND \"${_deps_tool_cmd}\")
       include(\"${_deps_script}\")
       file(REMOVE \"\${DIR}/.runtime_deps.stamp\")")
   endif()

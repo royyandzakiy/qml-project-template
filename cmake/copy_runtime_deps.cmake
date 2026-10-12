@@ -7,7 +7,8 @@
 # Inputs:
 #   DIR      — folder with the exe and the windeployqt output (scanned recursively)
 #   DEP_DIR  — vcpkg's bin folder for this config (…/x64-windows/bin or …/x64-windows/debug/bin)
-#   DUMPBIN  — path to dumpbin.exe (what GET_RUNTIME_DEPENDENCIES uses to read PE imports)
+#   TOOL, TOOL_COMMAND — how GET_RUNTIME_DEPENDENCIES reads PE imports: "objdump" + llvm-objdump.exe,
+#                        or "dumpbin" + dumpbin.exe
 
 set(_stamp "${DIR}/.runtime_deps.stamp")
 
@@ -26,8 +27,8 @@ endif()
 
 if(_dlls)
   set(CMAKE_GET_RUNTIME_DEPENDENCIES_PLATFORM "windows+pe")
-  set(CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL "dumpbin")
-  set(CMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND "${DUMPBIN}")
+  set(CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL "${TOOL}")
+  set(CMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND "${TOOL_COMMAND}")
   # On Windows the resolver also searches PATH, which during a build can hold vcpkg's *release*
   # folders (e.g. x64-windows/bin, tools/Qt6/bin) and make debug and release Qt DLLs "conflict".
   # Search only DIR, DEP_DIR and the system folders.
