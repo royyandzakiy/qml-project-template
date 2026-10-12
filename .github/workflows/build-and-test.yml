@@ -1,6 +1,7 @@
 # .github/workflows/build-and-test.yml
 # Windows clang-cl only for now: Qt comes from vcpkg, and building it on Linux/macOS runners needs
 # extra system packages (X11/xkb/GL dev headers) that scripts/setup-ubuntu.sh doesn't install yet.
+# Tests per preset: GTest (core), QtTest (viewmodels), Qt Quick Test (QML), + Spix E2E on clang-cl-e2e.
 name: CI
 
 on:
@@ -23,7 +24,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        preset: [clang-cl-debug, clang-cl-release]
+        # clang-cl-e2e = Debug + ENABLE_SPIX: also runs the Spix E2E test (test/e2e/). Never packaged.
+        preset: [clang-cl-debug, clang-cl-release, clang-cl-e2e]
     env:
       # vcpkg's binary cache. The first run builds Qt from source (~1h+); later runs restore it.
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache

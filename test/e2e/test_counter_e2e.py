@@ -35,9 +35,12 @@ class CounterE2E(unittest.TestCase):
         env = dict(os.environ, SPIX_PORT=str(PORT))
         self.app = subprocess.Popen([APP], env=env)
         self.spix = xmlrpc.client.ServerProxy(f"http://localhost:{PORT}")
+        # addCleanup, not tearDown: tearDown is skipped when setUp fails, which would leave the app
+        # running and hang ctest on its open output pipe.
+        self.addCleanup(self.stop_app)
         wait_for_spix(self.spix, "mainWindow/incrementButton")
 
-    def tearDown(self):
+    def stop_app(self):
         try:
             self.spix.quit()
         except (ConnectionError, OSError, xmlrpc.client.Fault):

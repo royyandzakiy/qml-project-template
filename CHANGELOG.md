@@ -13,6 +13,9 @@ commit). Newest first.
 - Tests: GTest on `core`, QtTest on the viewmodels. `format` / `format-check` also cover `.qml`.
 - qtbase trimmed to the features QML needs; Tracy is an opt-in vcpkg feature; one output dir per preset.
 - CI reduced to Windows clang-cl (debug + release) with a vcpkg binary cache.
+- Qt Quick Test (`test/qml/tst_*.qml`): CounterCard component test + Main.qml smoke test.
+- Spix E2E (`ENABLE_SPIX`, `clang-cl-e2e` preset): Python drives the real app over XML-RPC
+  (`test/e2e/`). AnyRPC via vcpkg feature, Spix v0.14 via FetchContent. Test builds only.
 
 ## 2026-06-26 → 06-27 — App/library split & subproject support
 - Split into two targets: `MyApp` (standalone app) and `MyLib` (shared-by-default / static via
