@@ -7,13 +7,16 @@ ApplicationWindow {
     visible: true
     width: 480
     height: 320
-    title: "Qt QML Hello (v" + Qt.application.version + ")"
+    title: Qt.application.name + " (v" + Qt.application.version + ")"
 
-    property int clicks: 0
+    // C++ viewmodel, registered with QML_ELEMENT (src/viewmodels/counter_view_model.hpp)
+    CounterViewModel {
+        id: counter
+    }
 
     ColumnLayout {
         anchors.centerIn: parent
-        spacing: 12
+        spacing: 16
 
         Label {
             Layout.alignment: Qt.AlignHCenter
@@ -21,10 +24,11 @@ ApplicationWindow {
             font.pixelSize: 24
         }
 
-        Button {
+        CounterCard {
             Layout.alignment: Qt.AlignHCenter
-            text: root.clicks === 0 ? "Click me" : "Clicked " + root.clicks + "x"
-            onClicked: root.clicks++
+            label: counter.label
+            onIncrementClicked: counter.increment()
+            onResetClicked: counter.reset()
         }
     }
 }

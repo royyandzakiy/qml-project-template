@@ -78,3 +78,5 @@ desktop.ini
 # ----- Editor swap/backup -----
 *~
 *.swp
+
+.cache

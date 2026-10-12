@@ -11,7 +11,8 @@
                         "hidden": true,
                         "binaryDir": "${sourceDir}/build/${presetName}",
                         "cacheVariables": {
-                                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+                                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                                "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/bin/${presetName}"
                         }
                 },
                 {
@@ -37,7 +38,6 @@
                                 "strategy": "external"
                         },
                         "cacheVariables": {
-                                "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/bin/msvc",
 								"CMAKE_C_COMPILER": "cl.exe",
         						"CMAKE_CXX_COMPILER": "cl.exe"
                         }
@@ -49,8 +49,7 @@
                         "generator": "Ninja",
                         "cacheVariables": {
                                 "CMAKE_C_COMPILER": "clang-cl",
-                                "CMAKE_CXX_COMPILER": "clang-cl",
-                                "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/bin/clang-cl"
+                                "CMAKE_CXX_COMPILER": "clang-cl"
                         }
                 },
                 {
@@ -66,8 +65,7 @@
                         "cacheVariables": {
                                 "CMAKE_C_COMPILER": "gcc",
                                 "CMAKE_CXX_COMPILER": "g++",
-                                "VCPKG_TARGET_TRIPLET": "x64-mingw-static",
-                                "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/bin/mingw"
+                                "VCPKG_TARGET_TRIPLET": "x64-mingw-static"
                         }
                 },
                 {
@@ -90,8 +88,7 @@
                         "inherits": "linux-base",
                         "cacheVariables": {
                                 "CMAKE_C_COMPILER": "clang",
-                                "CMAKE_CXX_COMPILER": "clang++",
-                                "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/bin/clang"
+                                "CMAKE_CXX_COMPILER": "clang++"
                         }
                 },
                 {
@@ -100,8 +97,7 @@
                         "inherits": "linux-base",
                         "cacheVariables": {
                                 "CMAKE_C_COMPILER": "gcc",
-                                "CMAKE_CXX_COMPILER": "g++",
-                                "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/bin/gcc"
+                                "CMAKE_CXX_COMPILER": "g++"
                         }
                 },
                 {
@@ -115,7 +111,6 @@
                                 "rhs": "Darwin"
                         },
                         "cacheVariables": {
-                                "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/bin/mac",
                                 "VCPKG_TARGET_TRIPLET": "arm64-osx"
                         }
                 },

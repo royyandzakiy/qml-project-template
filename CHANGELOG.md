@@ -3,6 +3,17 @@
 Notable changes to this template, grouped chronologically by commit history (condensed — not every
 commit). Newest first.
 
+## 2026-10-12 — Qt/QML starter (forked from cpp-project-template)
+- Single Qt 6.8 / QML app from vcpkg (clang-cl, `x64-windows`); `MyApp`, `MyLib` and the
+  lib-only presets removed.
+- Layout: `src/core/` (pure C++, no Qt), `src/viewmodels/` (`QML_ELEMENT` classes), `qml/`
+  (static `App` QML module incl. `components/`), `resources/` (exe icon).
+- `deploy_qt_runtime()` runs windeployqt + writes `qt.conf` so the app runs from `bin/<preset>/`;
+  `cmake --install` / cpack ZIP produce a self-contained release folder.
+- Tests: GTest on `core`, QtTest on the viewmodels. `format` / `format-check` also cover `.qml`.
+- qtbase trimmed to the features QML needs; Tracy is an opt-in vcpkg feature; one output dir per preset.
+- CI reduced to Windows clang-cl (debug + release) with a vcpkg binary cache.
+
 ## 2026-06-26 → 06-27 — App/library split & subproject support
 - Split into two targets: `MyApp` (standalone app) and `MyLib` (shared-by-default / static via
   `BUILD_LIB_SHARED`), each toggleable with `BUILD_APP` / `BUILD_LIB`.

@@ -6,9 +6,9 @@
 // The App QML module (qml/) is a static library; this pulls its plugin into the binary.
 Q_IMPORT_QML_PLUGIN(AppPlugin)
 
-auto main(int argc, char* argv[]) -> int {
+auto main(int argc, char *argv[]) -> int {
 	const QGuiApplication app(argc, argv);
-	QGuiApplication::setApplicationName("Qt QML Hello");
+	QGuiApplication::setApplicationName(APP_NAME);
 	QGuiApplication::setApplicationVersion(APP_VERSION);
 
 	QQuickStyle::setStyle("Fusion");

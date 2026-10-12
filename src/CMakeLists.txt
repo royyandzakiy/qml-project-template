@@ -1,33 +1,36 @@
 # =============================================================================
-# qt_qml_simple_hello — the Qt/QML application
+# The Qt/QML application (target name = project name)
 # =============================================================================
-# C++ entry point only; the UI lives in the App QML module under qml/.
+# C++ entry point only; the UI lives in the App QML module under qml/, the logic in src/core/.
 # =============================================================================
 
 # ---- Executable -------------------------------------------------------------
-qt_add_executable(qt_qml_simple_hello)
+qt_add_executable(${PROJECT_NAME})
 
 # ---- Sources ----------------------------------------------------------------
-target_sources(qt_qml_simple_hello
+target_sources(${PROJECT_NAME}
     PRIVATE
         main.cpp
+        $<$<PLATFORM_ID:Windows>:${PROJECT_SOURCE_DIR}/resources/app.rc> # exe icon
 )
 
 # ---- Properties -------------------------------------------------------------
-set_target_properties(qt_qml_simple_hello PROPERTIES
-    WIN32_EXECUTABLE FALSE       # keep the console so qDebug / QML warnings are visible
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>> # console (qDebug / QML warnings) only in Debug
+    MACOSX_BUNDLE TRUE
     CXX_EXTENSIONS OFF
 )
 
 # ---- Compile Definitions ----------------------------------------------------
-# Shown in the window title via Qt.application.version
-target_compile_definitions(qt_qml_simple_hello
+# Shown in the window title via Qt.application.name / Qt.application.version
+target_compile_definitions(${PROJECT_NAME}
     PRIVATE
+        APP_NAME="${PROJECT_NAME}"
         APP_VERSION="${PROJECT_VERSION}"
 )
 
 # ---- Dependencies -----------------------------------------------------------
-target_link_libraries(qt_qml_simple_hello
+target_link_libraries(${PROJECT_NAME}
     PRIVATE
         app_qmlplugin            # static App QML module (qml/), imported in main.cpp
         Qt6::Quick
@@ -36,7 +39,19 @@ target_link_libraries(qt_qml_simple_hello
 
 # ---- Cross-Cutting Configuration --------------------------------------------
 # PCH, unity build, profiler links, clang-tidy, ASan deploy — see cmake/configure_target.cmake
-configure_target(qt_qml_simple_hello)
-deploy_qt_runtime(qt_qml_simple_hello)
+configure_target(${PROJECT_NAME})
+deploy_qt_runtime(${PROJECT_NAME}) # dev-time: run straight from bin/<preset>/
 
-message(STATUS "qt_qml_simple_hello configured (Qt ${Qt6_VERSION})")
+# ---- Install / Release Deploy -----------------------------------------------
+# `cmake --install <build> --prefix <dir>` gives a self-contained folder (exe + Qt runtime + qt.conf);
+# cpack zips it (see cmake/packaging.cmake).
+include(GNUInstallDirs)
+install(TARGETS ${PROJECT_NAME}
+    BUNDLE DESTINATION .
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+# Same windeployqt + qt.conf as the dev deploy (Qt's qt_generate_deploy_qml_app_script missed the
+# Controls style DLLs and all non-Qt vcpkg DLLs with this setup).
+install_qt_runtime(${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+message(STATUS "${PROJECT_NAME} configured (Qt ${Qt6_VERSION})")

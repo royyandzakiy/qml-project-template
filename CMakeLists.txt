@@ -56,14 +56,21 @@ endif()
 # Dependencies
 #=========================
 include(project_dependencies.cmake)
+if(BUILD_APP AND PROJECT_IS_TOP_LEVEL)
+  include(cmake/qml_tools.cmake) # qmlformat into format / format-check (needs Qt found)
+endif()
 
 #=========================
 # Targets
 #=========================
 # Add or remove targets as needed
+add_subdirectory(src/core) # pure C++ logic, no Qt (always built, so its tests run without Qt)
 if(BUILD_APP)
-  add_subdirectory(qml) # static QML module (URI App), linked into the app as a plugin
+  add_subdirectory(qml) # static QML module (URI App): UI + viewmodels, linked into the app as a plugin
   add_subdirectory(src) # the Qt/QML application
+  if(PROJECT_IS_TOP_LEVEL)
+    include(cmake/packaging.cmake) # cpack ZIP of the installed app
+  endif()
 endif()
 if(BUILD_EXAMPLES)
   add_subdirectory(examples)

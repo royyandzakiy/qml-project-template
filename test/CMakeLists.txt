@@ -1,6 +1,6 @@
 # test/CMakeLists.txt
 # =============================================================================
-# GTest Setup (shared by unit_tests and the sanitizer trip-wires)
+# GTest Setup (shared by unit_tests and the sanitizer trip-wires; viewmodel_tests uses QtTest)
 # =============================================================================
 # find_package(GTest CONFIG REQUIRED) # need to add `gtest` in vcpkg.json
 include(FetchContent)
@@ -28,11 +28,22 @@ include(GoogleTest)
 set(CMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE PRE_TEST)
 
 # =============================================================================
-# Unit tests — placeholder until real app logic exists. test_simple.cpp has its own main().
+# Unit tests — GTest on src/core (pure C++). No Qt needed, so these also run with BUILD_APP=OFF.
 # =============================================================================
-add_executable(unit_tests test_simple.cpp)
-target_link_libraries(unit_tests PRIVATE GTest::gtest)
+add_executable(unit_tests test_counter.cpp)
+target_link_libraries(unit_tests PRIVATE app_core GTest::gtest_main)
+set_target_properties(unit_tests PROPERTIES AUTOMOC OFF)
 gtest_discover_tests(unit_tests)
+
+# =============================================================================
+# Viewmodel tests — QtTest on the QML_ELEMENT classes in the App module (links the static module,
+# so it tests exactly what the app runs). vcpkg copies the Qt DLLs next to the test exe.
+# =============================================================================
+if(BUILD_APP)
+  add_executable(viewmodel_tests test_counter_view_model.cpp)
+  target_link_libraries(viewmodel_tests PRIVATE app_qml Qt6::Test)
+  add_test(NAME viewmodel_tests COMMAND viewmodel_tests)
+endif()
 
 # =============================================================================
 # Sanitizer trip-wires — verify each sanitizer actually CATCHES its bug class.
